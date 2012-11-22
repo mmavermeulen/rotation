@@ -1,0 +1,100 @@
+PROGRAM RG_calc_tcp
+%NOLOCKGROUP
+%NOPAUSE= COMMAND + TPENABLE + ERROR
+%COMMENT ='20121121 v1.2.15'
+
+%INCLUDE constanten
+
+VAR
+phi, psi_goal,wayp_dist, waypdist_tmp, delta_x, x_offset, y_offset, z_offset, x_toolcenter, y_toolcenter, z_toolcenter, r_val, alpha1, x_prod1, y_prod1,  beta1, z_prod1: REAL
+i_val, wayp_angle, wayp_nr, i_tmp,  STATUS: INTEGER
+f_flg : BOOLEAN
+
+BEGIN
+
+----------------------------------------------
+--GET DATA
+----------------------------------------------
+--get alpha1
+	GET_REG(rALPHA1, f_flg, i_val, alpha1, STATUS)
+
+--get beta1
+	GET_REG(rBETA1,f_flg, i_val, beta1, STATUS)
+
+--get x_prod1
+	GET_REG(rXPROD,f_flg, i_val,  x_prod1, STATUS)
+	
+--get y_prod1
+	GET_REG(rYPROD,f_flg, i_val, y_prod1, STATUS)
+
+--get z_prod1
+	GET_REG(rZPROD,f_flg, i_val, z_prod1, STATUS)
+
+
+-----------------------------------------------
+--CALCULATION
+-----------------------------------------------
+
+--calculate phi
+	phi = alpha1
+
+-- calculate psi_goal
+	psi_goal = 0.4002*beta1-0.2435
+
+--get closest waypoint
+wayp_dist=1000	--big number
+wayp_nr	=0
+
+FOR i_tmp=1 TO 7 DO
+	wayp_angle = -4*13 + i_tmp*13
+	waypdist_tmp = SQRT((wayp_angle-psi_goal)*(wayp_angle-psi_goal)) 	
+	IF waypdist_tmp < wayp_dist THEN
+		wayp_dist = waypdist_tmp
+		wayp_nr = i_tmp	
+	ENDIF	
+ENDFOR
+
+psi_goal=  -4*13 + wayp_nr*13 
+SET_REAL_REG(rpsi_goal,psi_goal, STATUS)
+
+-- calculate delta_x
+	delta_x = -(-0.0004*(psi_goal*psi_goal*psi_goal) + 0.0053*(psi_goal*psi_goal) + 2.8251*psi_goal + 0.7143)
+	
+-- calculate x_offset
+	x_offset =-28.65*SIN(phi)-delta_x*COS(phi)
+
+-- calculate y_offset
+	y_offset = 28.56*COS(phi)-0.2*(delta_x*SIN(phi))
+ 
+-- calculate z_offset
+	z_offset = -(-3E-17*(psi_goal*psi_goal*psi_goal) - 0.0331*(psi_goal*psi_goal) - 0.1374*psi_goal + 180.95)
+	
+-- calculate  x_toolcenter
+	x_toolcenter = x_prod1-x_offset
+
+-- calculate y_toolcenter
+	y_toolcenter =y_prod1-y_offset
+
+-- calculate z_toolcenter
+	z_toolcenter = z_prod1 - z_offset
+	
+-------------------------------------------------
+-- SET REGISTERS
+-------------------------------------------------
+
+-- Set phi to register
+	SET_REAL_REG(rPHI, phi+180, STATUS)
+
+-- Set psi_goal to register
+	SET_REAL_REG(rpsi_goal, psi_goal, STATUS)
+
+-- Set x_toolcenter to register
+	SET_REAL_REG(rXTOOL, x_toolcenter, STATUS)
+
+-- Set y_toolcenter to register
+	SET_REAL_REG(rYTOOL, y_toolcenter, STATUS)
+
+-- Set z_toolcenter to register
+	SET_REAL_REG(rZTOOL, z_toolcenter, STATUS)
+	
+END  RG_calc_tcp

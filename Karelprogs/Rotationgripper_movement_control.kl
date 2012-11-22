@@ -1,0 +1,66 @@
+PROGRAM RG_MOVCTR
+%NOLOCKGROUP
+%NOPAUSE= COMMAND + TPENABLE + ERROR
+%COMMENT ='20121120 v1.2.2'
+%INCLUDE constanten
+
+VAR
+psi,psi_goal, r_val, pannekoek : REAL
+ i_val, input3_tmp, STATUS: INTEGER
+f_flg : BOOLEAN
+
+
+BEGIN
+
+-- get goal position
+GET_REG(rPSI_GOAL,f_flg,i_val, psi_goal, STATUS)
+---get psi
+GET_REG(rPSI,f_flg, i_val, psi, STATUS)
+
+
+WHILE SQRT((psi-psi_goal)*(psi-psi_goal))>3 DO
+
+	-- angle = 0 when home position is crossed
+	IF (DIN[4]=ON) THEN
+		psi=0
+		SET_REAL_REG(rPSI, psi, STATUS)
+	ENDIF
+	
+	IF (psi-psi_goal<0) THEN
+		
+		RDO[3]=ON
+		DELAY 20
+		RDO[3]=OFF
+		input3_tmp=0
+		REPEAT 
+		DELAY 1
+			IF DIN[3]=OFF THEN 
+			input3_tmp=1
+			ENDIF
+		UNTIL (DIN[3]=ON) AND (input3_tmp=1)
+		psi=psi+13
+		SET_REAL_REG(rPSI, psi, STATUS)
+	ENDIF
+		
+	IF (psi-psi_goal>0) THEN
+		
+		RDO[4]=ON
+		DELAY 20
+		RDO[4]=OFF
+		input3_tmp=0
+		REPEAT 
+		DELAY 1
+			IF DIN[3]=OFF THEN
+			input3_tmp=1
+			ENDIF
+		UNTIL (DIN[3]=ON) AND (input3_tmp=1)
+		psi=psi-13	
+		SET_REAL_REG(rPSI, psi, STATUS)	
+	ENDIF
+		
+ENDWHILE
+
+	
+
+END RG_MOVCTR  
+
